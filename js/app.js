@@ -38,6 +38,14 @@
     });
   }
 
+  // iconos de linea a medida (SVG, heredan color con currentColor) en vez de emoji del sistema
+  var ICONS = {
+    play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><path d="M10 8.3v7.4l6-3.7z" fill="currentColor" stroke="none"/></svg>',
+    bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>',
+    tv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="13" rx="2.5"/><path d="M8 21h8M12 18v3"/></svg>'
+  };
+
   function parseWords(raw) {
     var seen = {};
     var out = [];
@@ -116,10 +124,10 @@
     return (
       '<nav class="bottom-nav">' +
         '<button class="nav-btn' + (onCatalog ? " active" : "") + '" data-action="nav" data-view="catalog" type="button">' +
-          '<span class="nav-ic">🎬</span><span>Catálogo</span>' +
+          '<span class="nav-ic">' + ICONS.play + '</span><span>Catálogo</span>' +
         "</button>" +
         '<button class="nav-btn' + (state.view === "vocab" ? " active" : "") + '" data-action="nav" data-view="vocab" type="button">' +
-          '<span class="nav-ic">📔</span><span>Mi vocabulario</span>' +
+          '<span class="nav-ic">' + ICONS.bookmark + '</span><span>Mi vocabulario</span>' +
         "</button>" +
       "</nav>"
     );
@@ -138,7 +146,7 @@
         '<p class="eyebrow">Tu catálogo</p>' +
         "<h1>Series que sigues</h1>" +
       "</header>" +
-      '<button class="search-trigger" data-action="open-search" type="button">🔍 Buscar una serie para añadir…</button>' +
+      '<button class="search-trigger" data-action="open-search" type="button"><span class="search-trigger-ic">' + ICONS.search + '</span>Buscar una serie para añadir…</button>' +
       '<div class="card-grid">' + cards + "</div>" +
       (state.searchOpen ? renderSearchSheet() : "")
     );
@@ -147,7 +155,7 @@
   function renderSeriesCard(s) {
     var poster = s.poster
       ? '<img src="' + escapeHtml(s.poster) + '" alt="" loading="lazy">'
-      : '<div class="poster-fallback">🎬</div>';
+      : '<div class="poster-fallback">' + ICONS.tv + '</div>';
     var confirming = state.confirmDeleteSeries === s.id;
     return (
       '<div class="series-card">' +
@@ -185,7 +193,7 @@
         storage.listSeries().forEach(function (s) { if (s.tvmazeId) existingIds[s.tvmazeId] = s.id; });
         resultsHtml = state.searchResults.map(function (r, i) {
           var already = existingIds[r.tvmazeId];
-          var poster = r.poster ? '<img src="' + escapeHtml(r.poster) + '" alt="" loading="lazy">' : '<div class="poster-fallback small">🎬</div>';
+          var poster = r.poster ? '<img src="' + escapeHtml(r.poster) + '" alt="" loading="lazy">' : '<div class="poster-fallback small">' + ICONS.tv + '</div>';
           return (
             '<div class="search-result">' +
               '<div class="poster small">' + poster + "</div>" +
@@ -228,7 +236,7 @@
 
     var poster = series.poster
       ? '<img src="' + escapeHtml(series.poster) + '" alt="">'
-      : '<div class="poster-fallback">🎬</div>';
+      : '<div class="poster-fallback">' + ICONS.tv + '</div>';
 
     var body;
     if (series.manual) {
