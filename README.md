@@ -1,0 +1,58 @@
+# WordPause 🍿
+
+WordPause es una app web para anotar las palabras en inglés que no entiendes al ver una serie, traducirlas y guardarlas organizadas por serie, temporada y capítulo — clasificadas en verbos, sustantivos, adjetivos, expresiones, etc.
+
+No tiene backend: es HTML/CSS/JS puro. Todo el catálogo de series y el vocabulario se guarda en el navegador (localStorage), así que vive solo en el dispositivo/navegador donde se use. Usa "Exportar copia (JSON)" en la pestaña *Mi vocabulario* de vez en cuando para tener una copia de seguridad, o para pasar los datos a otro dispositivo con "Importar copia".
+
+## Cómo funciona por dentro
+
+- **Buscar y añadir series** — [TVMaze](https://www.tvmaze.com/api) (gratis, sin clave). Al añadir una serie se descarga automáticamente su lista completa de temporadas y capítulos, así que no hay que escribirlos a mano. Si una serie no aparece en la búsqueda, se puede añadir manualmente (solo con el nombre, indicando temporada/capítulo a mano cuando se anoten palabras).
+- **Traducir palabras** — [MyMemory](https://mymemory.translated.net/) (gratis, sin clave) para la traducción al español.
+- **Categoría gramatical y ejemplos** — [Free Dictionary API](https://dictionaryapi.dev/) (gratis, sin clave) para saber si es verbo/sustantivo/adjetivo/etc. y sacar un ejemplo en inglés. Las expresiones de varias palabras (phrasal verbs, modismos) se agrupan directamente como "Expresión", porque un diccionario de palabra suelta no las reconoce.
+
+Las traducciones ya resueltas se guardan en caché en el propio navegador para no repetir peticiones a las APIs gratuitas cuando se repite una palabra.
+
+### Límites a tener en cuenta
+
+Las tres APIs son gratuitas y sin registro, lo cual es cómodo pero tiene límites: MyMemory permite un número limitado de caracteres traducidos al día por dispositivo/red (de sobra para uso personal normal); si un día se agota, la app avisa por palabra y se puede reintentar más tarde. El diccionario en inglés no conoce jerga muy nueva ni todas las expresiones — en esos casos la palabra se guarda igualmente, solo que como "Expresión" sin definición extra.
+
+## Probarlo en local
+
+No hace falta instalar nada, pero abrir `index.html` con doble clic (protocolo `file://`) puede hacer que algún navegador bloquee las peticiones a las APIs. Lo más fiable es levantar un servidor local muy simple desde esta carpeta:
+
+```bash
+cd word-pause
+python3 -m http.server 8000
+```
+
+Y abrir `http://localhost:8000` en el navegador (o en el móvil, si está en la misma red, usando la IP del ordenador en vez de `localhost`).
+
+## Publicarlo en GitHub Pages (para usarlo también desde el móvil)
+
+1. Crea un repositorio nuevo en GitHub (puede ser privado) y sube el contenido de esta carpeta:
+
+   ```bash
+   cd word-pause
+   git init
+   git add .
+   git commit -m "Primera versión de WordPause"
+   git branch -M main
+   git remote add origin https://github.com/martafrailejara/word-pause.git
+   git push -u origin main
+   ```
+
+2. En GitHub, ve a **Settings → Pages**, y en "Build and deployment" elige la rama `main` y la carpeta `/ (root)`.
+3. En un par de minutos, GitHub te da una URL tipo `https://martafrailejara.github.io/word-pause/` — esa es la que se puede abrir desde el móvil (añádela a la pantalla de inicio para que se sienta como una app).
+
+Recuerda: el vocabulario guardado vive en el navegador de *cada* dispositivo por separado — si lo usas desde el ordenador y desde el móvil, tendrás dos vocabularios distintos, a no ser que exportes desde uno e importes en el otro.
+
+## Estructura del proyecto
+
+```
+word-pause/
+├── index.html        Estructura de la página
+├── css/styles.css     Estilos (mobile-first, con tema claro/oscuro)
+├── js/storage.js       Guardado en localStorage (series, capítulos, vocabulario)
+├── js/api.js            Llamadas a TVMaze, MyMemory y Dictionary API
+└── js/app.js             Interfaz: catálogo, ficha de serie, capítulo y "Mi vocabulario"
+```
