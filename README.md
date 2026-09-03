@@ -29,20 +29,19 @@ Y abrir `http://localhost:8000` en el navegador (o en el móvil, si está en la 
 
 ## Publicarlo en GitHub Pages (para usarlo también desde el móvil)
 
-1. Crea un repositorio nuevo en GitHub (puede ser privado) y sube el contenido de esta carpeta:
+El repositorio local ya está inicializado en esta carpeta, con el primer commit hecho (rama `main`). Desde tu Terminal (no desde este chat):
+
+1. Crea un repositorio vacío en GitHub llamado **word-pause** — en <https://github.com/new>, sin marcar ninguna casilla de README/licencia/gitignore (para que no choque con lo que ya hay aquí).
+2. Conéctalo y sube lo que ya tienes:
 
    ```bash
-   cd word-pause
-   git init
-   git add .
-   git commit -m "Primera versión de WordPause"
-   git branch -M main
+   cd ~/Documents/proyectos/word-pause
    git remote add origin https://github.com/martafrailejara/word-pause.git
    git push -u origin main
    ```
 
-2. En GitHub, ve a **Settings → Pages**, y en "Build and deployment" elige la rama `main` y la carpeta `/ (root)`.
-3. En un par de minutos, GitHub te da una URL tipo `https://martafrailejara.github.io/word-pause/` — esa es la que se puede abrir desde el móvil (añádela a la pantalla de inicio para que se sienta como una app).
+3. En GitHub, ve a **Settings → Pages**, y en "Build and deployment" elige la rama `main` y la carpeta `/ (root)`.
+4. En un par de minutos, GitHub te da una URL tipo `https://martafrailejara.github.io/word-pause/` — esa es la que se puede abrir desde el móvil (añádela a la pantalla de inicio para que se sienta como una app).
 
 Recuerda: el vocabulario guardado vive en el navegador de *cada* dispositivo por separado — si lo usas desde el ordenador y desde el móvil, tendrás dos vocabularios distintos, a no ser que exportes desde uno e importes en el otro.
 
