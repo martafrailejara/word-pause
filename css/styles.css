@@ -163,12 +163,19 @@ h1 {
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-family: "Fraunces", Georgia, serif;
   font-weight: 600;
   font-size: 15px;
   color: var(--text);
   pointer-events: none;
+}
+
+.brand-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: block;
 }
 
 /* ---------- theme toggle ---------- */

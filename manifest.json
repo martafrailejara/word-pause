@@ -1,0 +1,13 @@
+{
+  "name": "WordPause",
+  "short_name": "WordPause",
+  "description": "Traduce y organiza el vocabulario en inglés de las series que ves.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#14161c",
+  "theme_color": "#14161c",
+  "icons": [
+    { "src": "img/logo-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/logo-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
