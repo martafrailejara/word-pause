@@ -85,19 +85,56 @@ window.VP = window.VP || {};
 
   // ---------- MyMemory: traducción ----------
 
+  // ---------- expresiones/modismos: diccionario propio (offline, curado a mano) ----------
+  //
+  // MyMemory traduce muchas expresiones hechas de forma literal o directamente
+  // no las traduce ("break a leg" se queda igual). Para las mas habituales en
+  // dialogos de series usamos una traduccion curada a mano en vez de fiarnos
+  // de la traduccion automatica.
+
+  var IDIOMS_URL = "data/idioms.json";
+  var idiomsPromise = null;
+
+  function loadIdioms() {
+    if (!idiomsPromise) {
+      idiomsPromise = fetchWithTimeout(IDIOMS_URL, undefined, 15000)
+        .then(function (res) {
+          if (!res.ok) throw new Error("idioms_failed");
+          return res.json();
+        })
+        .catch(function () {
+          return {}; // sin diccionario de expresiones disponible: se sigue traduciendo con MyMemory
+        });
+    }
+    return idiomsPromise;
+  }
+
+  function matchIdiom(word) {
+    var trimmed = word.trim().toLowerCase();
+    if (!/\s/.test(trimmed)) return Promise.resolve(null); // solo aplica a expresiones de varias palabras
+    return loadIdioms().then(function (dict) {
+      return dict[trimmed] || null;
+    });
+  }
+
   function translate(word) {
-    var url = MYMEMORY + "?q=" + encodeURIComponent(word) + "&langpair=en|es";
-    return fetchWithTimeout(url)
-      .then(function (res) {
-        if (!res.ok) throw { code: "translate_failed" };
-        return res.json();
-      })
-      .then(function (data) {
-        var text = data && data.responseData && data.responseData.translatedText;
-        if (!text) throw { code: "translate_empty" };
-        if (/MYMEMORY WARNING/i.test(text)) throw { code: "translate_limit" };
-        return text;
-      });
+    return matchIdiom(word).then(function (curated) {
+      if (curated) return curated;
+
+      var url = MYMEMORY + "?q=" + encodeURIComponent(word) + "&langpair=en|es";
+      return fetchWithTimeout(url)
+        .then(function (res) {
+          if (!res.ok) throw { code: "translate_failed" };
+          return res.json();
+        })
+        .then(function (data) {
+          var text = data && data.responseData && data.responseData.translatedText;
+          if (!text) throw { code: "translate_empty" };
+          if (/MYMEMORY WARNING/i.test(text)) throw { code: "translate_limit" };
+          // a veces MyMemory deja una coma suelta al final ("inevitablemente,")
+          return text.trim().replace(/\s*,\s*$/, "");
+        });
+    });
   }
 
   // ---------- categoría gramatical: diccionario local (offline, sin red) ----------
