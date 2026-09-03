@@ -45,6 +45,8 @@ El repositorio local ya está inicializado en esta carpeta, con el primer commit
 
 Recuerda: el vocabulario guardado vive en el navegador de *cada* dispositivo por separado — si lo usas desde el ordenador y desde el móvil, tendrás dos vocabularios distintos, a no ser que exportes desde uno e importes en el otro.
 
+https://martafrailejara.github.io/word-pause/
+
 ## Estructura del proyecto
 
 ```
