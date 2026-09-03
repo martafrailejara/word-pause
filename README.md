@@ -7,14 +7,15 @@ No tiene backend: es HTML/CSS/JS puro. Todo el catálogo de series y el vocabula
 ## Cómo funciona por dentro
 
 - **Buscar y añadir series** — [TVMaze](https://www.tvmaze.com/api) (gratis, sin clave). Al añadir una serie se descarga automáticamente su lista completa de temporadas y capítulos, así que no hay que escribirlos a mano. Si una serie no aparece en la búsqueda, se puede añadir manualmente (solo con el nombre, indicando temporada/capítulo a mano cuando se anoten palabras).
-- **Traducir palabras** — [MyMemory](https://mymemory.translated.net/) (gratis, sin clave) para la traducción al español.
-- **Categoría gramatical y ejemplos** — [Free Dictionary API](https://dictionaryapi.dev/) (gratis, sin clave) para saber si es verbo/sustantivo/adjetivo/etc. y sacar un ejemplo en inglés. Las expresiones de varias palabras (phrasal verbs, modismos) se agrupan directamente como "Expresión", porque un diccionario de palabra suelta no las reconoce.
+- **Traducir palabras** — [MyMemory](https://mymemory.translated.net/) (gratis, sin clave) para la traducción al español. Hasta 6 palabras se traducen a la vez para que una lista entera no tarde una eternidad.
+- **Categoría gramatical (verbo/sustantivo/adjetivo/adverbio)** — un diccionario propio incluido en la app (`data/pos-lexicon.json`, ~52.000 palabras inglesas comunes generado a partir de WordNet). Es instantáneo y no depende de ningún servicio externo. Se probó primero con una API pública de diccionario, pero en la práctica era demasiado lenta e inestable (peticiones de 15-20s, o que directamente no llegaban) y dejaba casi todo como "Otra" — de ahí el cambio a un diccionario local. Las expresiones de varias palabras (phrasal verbs, modismos) se agrupan directamente como "Expresión".
+- **Frase de ejemplo en inglés** — sigue viniendo de [Free Dictionary API](https://dictionaryapi.dev/) (gratis, sin clave), pero ahora solo como adorno: se le da un margen corto (3.5s) y, si no responde a tiempo, la palabra se guarda igual sin ejemplo — nunca bloquea ni decide la categoría.
 
-Las traducciones ya resueltas se guardan en caché en el propio navegador para no repetir peticiones a las APIs gratuitas cuando se repite una palabra.
+Las traducciones ya resueltas se guardan en caché en el propio navegador para no repetir peticiones cuando se repite una palabra.
 
 ### Límites a tener en cuenta
 
-Las tres APIs son gratuitas y sin registro, lo cual es cómodo pero tiene límites: MyMemory permite un número limitado de caracteres traducidos al día por dispositivo/red (de sobra para uso personal normal); si un día se agota, la app avisa por palabra y se puede reintentar más tarde. El diccionario en inglés no conoce jerga muy nueva ni todas las expresiones — en esos casos la palabra se guarda igualmente, solo que como "Expresión" sin definición extra.
+MyMemory es gratuita y sin registro, lo cual es cómodo pero tiene un límite de caracteres traducidos al día por dispositivo/red (de sobra para uso personal normal); si un día se agota, la app avisa por palabra y se puede reintentar más tarde. El diccionario local de categorías no conoce jerga muy nueva ni nombres propios — esas palabras se guardan igual, solo que como "Otra" en vez de con su categoría exacta. La frase de ejemplo en inglés no siempre aparece, porque depende de un servicio externo que a veces tarda de más.
 
 ## Probarlo en local
 
