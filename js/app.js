@@ -513,7 +513,7 @@
     var failed = [];
     var completed = 0;
     var nextIndex = 0;
-    var CONCURRENCY = 6; // varias palabras a la vez — mucho más rápido que una por una
+    var CONCURRENCY = 8; // varias palabras a la vez — mucho más rápido que una por una
 
     function worker() {
       if (nextIndex >= words.length) return Promise.resolve();

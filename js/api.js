@@ -212,16 +212,33 @@ window.VP = window.VP || {};
     var key = word.trim().toLowerCase();
     if (cache[key]) return Promise.resolve(cache[key]);
 
-    return Promise.all([translate(word), lookupPos(word), fetchExample(word)]).then(function (res) {
+    // Solo esperamos a la traduccion y la categoria: son las dos cosas que
+    // el usuario necesita para guardar la palabra, y ambas suelen responder
+    // en unos cientos de ms (la categoria es local, sin red). El ejemplo en
+    // ingles (dictionaryapi.dev) es un extra decorativo que en la practica
+    // es lento/inestable, asi que ya NO bloquea el resultado: se pide en
+    // segundo plano y, si llega, se anade a la cache para la proxima vez.
+    return Promise.all([translate(word), lookupPos(word)]).then(function (res) {
       var result = {
         word: word.trim(),
         translation: res[0],
         pos: res[1],
-        definition_en: res[2].definition_en,
-        example_en: res[2].example_en
+        definition_en: "",
+        example_en: ""
       };
       cache[key] = result;
       saveCache(cache);
+
+      fetchExample(word).then(function (ex) {
+        if (!ex || (!ex.example_en && !ex.definition_en)) return;
+        var c = loadCache();
+        if (c[key]) {
+          c[key].definition_en = ex.definition_en;
+          c[key].example_en = ex.example_en;
+          saveCache(c);
+        }
+      });
+
       return result;
     });
   }
