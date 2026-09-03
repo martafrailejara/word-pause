@@ -11,10 +11,10 @@ window.VP = window.VP || {};
   var CACHE_KEY = "wordPause.cache.v1";
 
   // Las APIs gratuitas a veces se quedan colgadas sin responder: si una
-  // petición tarda más de 9s la cortamos, para no bloquear toda la tanda.
-  function fetchWithTimeout(url, options) {
+  // petición tarda demasiado la cortamos, para no bloquear toda la tanda.
+  function fetchWithTimeout(url, options, ms) {
     var ctl = new AbortController();
-    var timer = setTimeout(function () { ctl.abort(); }, 9000);
+    var timer = setTimeout(function () { ctl.abort(); }, ms || 9000);
     return fetch(url, Object.assign({}, options, { signal: ctl.signal })).finally(function () {
       clearTimeout(timer);
     });
@@ -100,50 +100,71 @@ window.VP = window.VP || {};
       });
   }
 
-  // ---------- Dictionary API: categoría gramatical + ejemplo ----------
+  // ---------- categoría gramatical: diccionario local (offline, sin red) ----------
+  //
+  // La API pública de diccionario (dictionaryapi.dev) resultó demasiado lenta
+  // e inestable en la práctica (peticiones de 15-20s o que no llegan nunca),
+  // así que la categoría gramatical de cada palabra sale de un diccionario
+  // propio incluido en la app (data/pos-lexicon.json, ~52.000 palabras
+  // inglesas comunes con su categoría, generado a partir de WordNet). Es
+  // instantáneo y no depende de que ese servicio esté disponible.
 
-  var POS_ES = {
-    noun: "Sustantivo",
-    verb: "Verbo",
-    adjective: "Adjetivo",
-    adverb: "Adverbio",
-    pronoun: "Pronombre",
-    preposition: "Preposición",
-    conjunction: "Conjunción",
-    interjection: "Interjección",
-    exclamation: "Interjección",
-    determiner: "Determinante",
-    article: "Artículo",
-    numeral: "Numeral"
-  };
+  var POS_LEXICON_URL = "data/pos-lexicon.json";
+  var CODE_TO_ES = { n: "Sustantivo", v: "Verbo", a: "Adjetivo", r: "Adverbio" };
+  var lexiconPromise = null;
 
-  function lookupWord(word) {
-    // las expresiones de varias palabras no están en un diccionario de palabra suelta
-    if (/\s/.test(word.trim())) {
-      return Promise.resolve({ pos: "Expresión", definition_en: "", example_en: "" });
+  function loadLexicon() {
+    if (!lexiconPromise) {
+      lexiconPromise = fetchWithTimeout(POS_LEXICON_URL, undefined, 15000)
+        .then(function (res) {
+          if (!res.ok) throw new Error("lexicon_failed");
+          return res.json();
+        })
+        .catch(function () {
+          return {}; // sin diccionario local disponible: todo caerá en "Otra"
+        });
     }
+    return lexiconPromise;
+  }
+
+  function lookupPos(word) {
+    var trimmed = word.trim();
+    if (/\s/.test(trimmed)) {
+      // las expresiones de varias palabras (phrasal verbs, modismos) no
+      // están en un diccionario de palabra suelta
+      return Promise.resolve("Expresión");
+    }
+    return loadLexicon().then(function (lex) {
+      var code = lex[trimmed.toLowerCase()];
+      return CODE_TO_ES[code] || "Otra";
+    });
+  }
+
+  // ---------- Dictionary API: ejemplo en inglés (opcional, mejor esfuerzo) ----------
+  //
+  // Esto SÍ sigue llamando a dictionaryapi.dev, pero solo para adornar la
+  // ficha con una frase de ejemplo — nunca decide la categoría gramatical
+  // ni bloquea el guardado de la palabra. Si tarda más de 3.5s o falla,
+  // simplemente se guarda sin ejemplo.
+
+  function fetchExample(word) {
+    if (/\s/.test(word.trim())) return Promise.resolve({ definition_en: "", example_en: "" });
     var url = DICTIONARY + encodeURIComponent(word.trim().toLowerCase());
-    return fetchWithTimeout(url)
-      .then(function (res) {
-        if (!res.ok) return { pos: "Otra", definition_en: "", example_en: "" };
-        return res.json();
-      })
+    return fetchWithTimeout(url, undefined, 3500)
+      .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (data) {
-        if (!Array.isArray(data) || !data.length) return { pos: "Otra", definition_en: "", example_en: "" };
+        if (!Array.isArray(data) || !data.length) return { definition_en: "", example_en: "" };
         var meanings = data[0].meanings || [];
         for (var i = 0; i < meanings.length; i++) {
-          var m = meanings[i];
-          var def = (m.definitions && m.definitions[0]) || {};
-          return {
-            pos: POS_ES[m.partOfSpeech] || "Otra",
-            definition_en: def.definition || "",
-            example_en: def.example || ""
-          };
+          var def = (meanings[i].definitions && meanings[i].definitions[0]) || {};
+          if (def.example || def.definition) {
+            return { definition_en: def.definition || "", example_en: def.example || "" };
+          }
         }
-        return { pos: "Otra", definition_en: "", example_en: "" };
+        return { definition_en: "", example_en: "" };
       })
       .catch(function () {
-        return { pos: "Otra", definition_en: "", example_en: "" };
+        return { definition_en: "", example_en: "" };
       });
   }
 
@@ -154,13 +175,13 @@ window.VP = window.VP || {};
     var key = word.trim().toLowerCase();
     if (cache[key]) return Promise.resolve(cache[key]);
 
-    return Promise.all([translate(word), lookupWord(word)]).then(function (res) {
+    return Promise.all([translate(word), lookupPos(word), fetchExample(word)]).then(function (res) {
       var result = {
         word: word.trim(),
         translation: res[0],
-        pos: res[1].pos,
-        definition_en: res[1].definition_en,
-        example_en: res[1].example_en
+        pos: res[1],
+        definition_en: res[2].definition_en,
+        example_en: res[2].example_en
       };
       cache[key] = result;
       saveCache(cache);
@@ -172,11 +193,8 @@ window.VP = window.VP || {};
     searchSeries: searchSeries,
     fetchEpisodes: fetchEpisodes,
     resolveWord: resolveWord,
-    POS_ES: POS_ES,
     POS_ORDER: [
-      "Verbo", "Sustantivo", "Adjetivo", "Adverbio", "Expresión",
-      "Pronombre", "Preposición", "Conjunción", "Interjección",
-      "Determinante", "Artículo", "Numeral", "Otra"
+      "Verbo", "Sustantivo", "Adjetivo", "Adverbio", "Expresión", "Otra"
     ]
   };
 })(window.VP);
