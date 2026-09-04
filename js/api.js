@@ -5,6 +5,8 @@ window.VP = window.VP || {};
   "use strict";
 
   var TVMAZE = "https://api.tvmaze.com";
+  var OMDB = "https://www.omdbapi.com/";
+  var OMDB_KEY = "2d649a9d";
   var MYMEMORY = "https://api.mymemory.translated.net/get";
   var DICTIONARY = "https://api.dictionaryapi.dev/api/v2/entries/en/";
 
@@ -243,8 +245,36 @@ window.VP = window.VP || {};
     });
   }
 
+  // ---------- OMDb: buscar películas ----------
+  //
+  // TVMaze solo tiene series de TV, así que para películas usamos OMDb.
+  // A diferencia de TVMaze necesita una clave (gratis, 1000 peticiones/día),
+  // que al no haber servidor queda escrita aquí en el propio cliente.
+
+  function searchMovies(query) {
+    var url = OMDB + "?apikey=" + OMDB_KEY + "&type=movie&s=" + encodeURIComponent(query);
+    return fetchWithTimeout(url)
+      .then(function (res) {
+        if (!res.ok) throw { code: "omdb_search_failed" };
+        return res.json();
+      })
+      .then(function (data) {
+        if (data.Response === "False" || !Array.isArray(data.Search)) return [];
+        return data.Search.map(function (item) {
+          return {
+            imdbId: item.imdbID,
+            name: item.Title,
+            premiered: item.Year ? String(item.Year).slice(0, 4) : null,
+            poster: item.Poster && item.Poster !== "N/A" ? item.Poster : null,
+            summary: null
+          };
+        });
+      });
+  }
+
   VP.api = {
     searchSeries: searchSeries,
+    searchMovies: searchMovies,
     fetchEpisodes: fetchEpisodes,
     resolveWord: resolveWord,
     POS_ORDER: [

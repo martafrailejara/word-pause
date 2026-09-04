@@ -44,7 +44,9 @@ window.VP = window.VP || {};
     var data = load();
     var entry = {
       id: series.id || uid(),
+      type: series.type === "movie" ? "movie" : "tv",
       tvmazeId: series.tvmazeId || null,
+      imdbId: series.imdbId || null,
       name: series.name,
       poster: series.poster || null,
       summary: series.summary || null,

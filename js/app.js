@@ -14,6 +14,7 @@
     episode: null,
     episodeName: null,
     searchOpen: false,
+    searchMode: "tv", // "tv" | "movie" — qué buscamos en la hoja de búsqueda
     searchQuery: "",
     searchResults: [],
     searchLoading: false,
@@ -21,6 +22,7 @@
     manualFormOpen: false,
     loadingEpisodesFor: {},
     confirmDeleteSeries: null,
+    catalogFilter: "all", // "all" | "tv" | "movie"
     wordInputDraft: "",
     translating: false,
     translateProgress: null,
@@ -43,7 +45,8 @@
     play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><path d="M10 8.3v7.4l6-3.7z" fill="currentColor" stroke="none"/></svg>',
     bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>',
-    tv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="13" rx="2.5"/><path d="M8 21h8M12 18v3"/></svg>'
+    tv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="13" rx="2.5"/><path d="M8 21h8M12 18v3"/></svg>',
+    clapper: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 15h18M8 4v5M8 15v5M16 4v5M16 15v5"/></svg>'
   };
 
   function parseWords(raw) {
@@ -136,26 +139,49 @@
   // ---------- vista: catálogo ----------
 
   function renderCatalogView() {
+    var filter = state.catalogFilter || "all";
     var series = storage.listSeries();
+    if (filter !== "all") {
+      series = series.filter(function (s) { return (s.type || "tv") === filter; });
+    }
+    var emptyMsg = filter === "movie"
+      ? "Aún no has añadido ninguna película. Búscala arriba para empezar."
+      : filter === "tv"
+        ? "Aún no has añadido ninguna serie. Búscala arriba para empezar."
+        : "Aún no has añadido nada. Búscalo arriba para empezar tu catálogo.";
     var cards = series.length
       ? series.map(renderSeriesCard).join("")
-      : '<p class="empty-note">Aún no has añadido ninguna serie. Búscala arriba para empezar tu catálogo.</p>';
+      : '<p class="empty-note">' + emptyMsg + "</p>";
 
     return (
       '<header class="topbar">' +
         '<p class="eyebrow">Tu catálogo</p>' +
-        "<h1>Series que sigues</h1>" +
+        "<h1>Lo que sigues</h1>" +
       "</header>" +
-      '<button class="search-trigger" data-action="open-search" type="button"><span class="search-trigger-ic">' + ICONS.search + '</span>Buscar una serie para añadir…</button>' +
+      '<button class="search-trigger" data-action="open-search" type="button"><span class="search-trigger-ic">' + ICONS.search + '</span>Buscar una serie o película para añadir…</button>' +
+      renderCatalogFilters() +
       '<div class="card-grid">' + cards + "</div>" +
       (state.searchOpen ? renderSearchSheet() : "")
     );
   }
 
+  function renderCatalogFilters() {
+    var f = state.catalogFilter || "all";
+    return (
+      '<div class="search-mode-row">' +
+        '<button class="chip' + (f === "all" ? " active" : "") + '" data-action="set-catalog-filter" data-filter="all" type="button">Todas</button>' +
+        '<button class="chip' + (f === "tv" ? " active" : "") + '" data-action="set-catalog-filter" data-filter="tv" type="button">Series</button>' +
+        '<button class="chip' + (f === "movie" ? " active" : "") + '" data-action="set-catalog-filter" data-filter="movie" type="button">Películas</button>' +
+      "</div>"
+    );
+  }
+
   function renderSeriesCard(s) {
+    var type = s.type || "tv";
+    var typeIcon = type === "movie" ? ICONS.clapper : ICONS.tv;
     var poster = s.poster
       ? '<img src="' + escapeHtml(s.poster) + '" alt="" loading="lazy">'
-      : '<div class="poster-fallback">' + ICONS.tv + '</div>';
+      : '<div class="poster-fallback">' + typeIcon + '</div>';
     var confirming = state.confirmDeleteSeries === s.id;
     return (
       '<div class="series-card">' +
@@ -163,6 +189,7 @@
           '<div class="poster">' + poster + "</div>" +
           '<p class="series-card-name">' + escapeHtml(s.name) + "</p>" +
         "</button>" +
+        '<span class="type-badge" title="' + (type === "movie" ? "Película" : "Serie") + '">' + typeIcon + "</span>" +
         '<button class="series-card-del' + (confirming ? " confirming" : "") + '" data-action="delete-series" data-id="' + escapeHtml(s.id) + '" type="button" aria-label="Eliminar ' + escapeHtml(s.name) + '">' +
           (confirming ? "¿Seguro?" : "×") +
         "</button>" +
@@ -171,12 +198,20 @@
   }
 
   function renderSearchSheet() {
+    var mode = state.searchMode || "tv";
+    var isMovie = mode === "movie";
+    var modeToggle =
+      '<div class="search-mode-row">' +
+        '<button class="chip' + (!isMovie ? " active" : "") + '" data-action="set-search-mode" data-mode="tv" type="button">Serie</button>' +
+        '<button class="chip' + (isMovie ? " active" : "") + '" data-action="set-search-mode" data-mode="movie" type="button">Película</button>' +
+      "</div>";
+
     var body = "";
     if (state.manualFormOpen) {
       body =
         '<form data-action="submit-manual-series" class="manual-form">' +
-          '<label class="field-label" for="manualName">Nombre de la serie</label>' +
-          '<input id="manualName" type="text" placeholder="Ej. Peaky Blinders" autocomplete="off" required>' +
+          '<label class="field-label" for="manualName">' + (isMovie ? "Nombre de la película" : "Nombre de la serie") + "</label>" +
+          '<input id="manualName" type="text" placeholder="' + (isMovie ? "Ej. Whiplash" : "Ej. Peaky Blinders") + '" autocomplete="off" required>' +
           '<button class="btn primary" type="submit">Añadir sin portada</button>' +
           '<button class="btn ghost" data-action="close-manual-form" type="button">Volver a buscar</button>' +
         "</form>";
@@ -190,10 +225,14 @@
         resultsHtml = '<p class="empty-note">Sin resultados para “' + escapeHtml(state.searchQuery) + '”.</p>';
       } else {
         var existingIds = {};
-        storage.listSeries().forEach(function (s) { if (s.tvmazeId) existingIds[s.tvmazeId] = s.id; });
+        storage.listSeries().forEach(function (s) {
+          if (s.tvmazeId) existingIds["tv:" + s.tvmazeId] = s.id;
+          if (s.imdbId) existingIds["movie:" + s.imdbId] = s.id;
+        });
+        var typeIcon = isMovie ? ICONS.clapper : ICONS.tv;
         resultsHtml = state.searchResults.map(function (r, i) {
-          var already = existingIds[r.tvmazeId];
-          var poster = r.poster ? '<img src="' + escapeHtml(r.poster) + '" alt="" loading="lazy">' : '<div class="poster-fallback small">' + ICONS.tv + '</div>';
+          var already = existingIds[mode + ":" + (isMovie ? r.imdbId : r.tvmazeId)];
+          var poster = r.poster ? '<img src="' + escapeHtml(r.poster) + '" alt="" loading="lazy">' : '<div class="poster-fallback small">' + typeIcon + '</div>';
           return (
             '<div class="search-result">' +
               '<div class="poster small">' + poster + "</div>" +
@@ -210,16 +249,17 @@
       }
 
       body =
-        '<input id="seriesSearchInput" class="search-input" type="search" placeholder="Ej. Breaking Bad" value="' + escapeHtml(state.searchQuery) + '" autocomplete="off" autofocus>' +
+        '<input id="seriesSearchInput" class="search-input" type="search" placeholder="' + (isMovie ? "Ej. Oppenheimer" : "Ej. Breaking Bad") + '" value="' + escapeHtml(state.searchQuery) + '" autocomplete="off" autofocus>' +
         '<div class="search-results">' + resultsHtml + "</div>" +
-        '<button class="btn ghost full" data-action="open-manual-form" type="button">¿No aparece? Añadirla a mano</button>';
+        '<button class="btn ghost full" data-action="open-manual-form" type="button">' + (isMovie ? "¿No aparece? Añadirla a mano" : "¿No aparece? Añadirla a mano") + "</button>";
     }
 
     return (
       '<div class="sheet-backdrop" data-action="close-search"></div>' +
-      '<div class="sheet" role="dialog" aria-label="Buscar serie">' +
+      '<div class="sheet" role="dialog" aria-label="Buscar">' +
         '<div class="sheet-handle"></div>' +
         '<button class="sheet-close" data-action="close-search" type="button" aria-label="Cerrar">×</button>' +
+        modeToggle +
         body +
       "</div>"
     );
@@ -234,12 +274,15 @@
       return renderCatalogView();
     }
 
+    var isMovie = (series.type || "tv") === "movie";
     var poster = series.poster
       ? '<img src="' + escapeHtml(series.poster) + '" alt="">'
-      : '<div class="poster-fallback">' + ICONS.tv + '</div>';
+      : '<div class="poster-fallback">' + (isMovie ? ICONS.clapper : ICONS.tv) + '</div>';
 
     var body;
-    if (series.manual) {
+    if (isMovie) {
+      body = "";
+    } else if (series.manual) {
       body = renderManualSeasonPicker(series);
     } else if (state.loadingEpisodesFor[series.id]) {
       body = '<p class="empty-note">Cargando temporadas y capítulos…</p>';
@@ -247,9 +290,13 @@
       body = renderSeasonPicker(series);
     }
 
-    var chapterSection = (state.season != null && state.episode != null)
+    var chapterSection = (isMovie || (state.season != null && state.episode != null))
       ? renderChapterPanel(series)
       : "";
+
+    var tagLine = isMovie
+      ? '<p class="tag">Película' + (series.manual ? " · añadida a mano" : "") + "</p>"
+      : (series.manual ? '<p class="tag">Añadida a mano</p>' : "");
 
     return (
       '<header class="topbar with-back">' +
@@ -258,7 +305,7 @@
           '<div class="poster medium">' + poster + "</div>" +
           "<div>" +
             "<h1>" + escapeHtml(series.name) + "</h1>" +
-            (series.manual ? '<p class="tag">Añadida a mano</p>' : "") +
+            tagLine +
           "</div>" +
         "</div>" +
       "</header>" +
@@ -311,6 +358,7 @@
   }
 
   function renderChapterPanel(series) {
+    var isMovie = (series.type || "tv") === "movie";
     var words = storage.listWords({ seriesId: series.id, season: state.season, episode: state.episode });
     var grouped = {};
     words.forEach(function (w) {
@@ -349,7 +397,9 @@
     else if (state.translateError) statusLine = '<p class="status error">' + escapeHtml(state.translateError) + "</p>";
     else if (state.lastSaveCount) statusLine = '<p class="status ok">Guardado — ' + state.lastSaveCount + (state.lastSaveCount === 1 ? " palabra añadida." : " palabras añadidas.") + "</p>";
 
-    var episodeLabel = "T" + state.season + " · E" + state.episode + (state.episodeName ? " — " + escapeHtml(state.episodeName) : "");
+    var episodeLabel = isMovie
+      ? "PELÍCULA"
+      : "T" + state.season + " · E" + state.episode + (state.episodeName ? " — " + escapeHtml(state.episodeName) : "");
 
     return (
       '<section class="chapter-panel">' +
@@ -390,7 +440,7 @@
               '<div>' +
                 '<span class="w-en">' + escapeHtml(w.word) + "</span>" +
                 '<span class="w-es">' + escapeHtml(w.translation) + "</span>" +
-                '<span class="w-meta">' + escapeHtml(w.pos) + " · " + escapeHtml(w.seriesName) + " · T" + w.season + "E" + w.episode + " · " + formatRelative(w.addedAt) + "</span>" +
+                '<span class="w-meta">' + escapeHtml(w.pos) + " · " + escapeHtml(w.seriesName) + " · " + (w.season != null && w.episode != null ? "T" + w.season + "E" + w.episode : "Película") + " · " + formatRelative(w.addedAt) + "</span>" +
               "</div>" +
               '<button class="del" data-action="delete-word" data-id="' + escapeHtml(w.id) + '" type="button" aria-label="Eliminar">×</button>' +
             "</li>"
@@ -438,7 +488,7 @@
       state.episode = last.episode;
       state.episodeName = last.episodeName;
     }
-    if (series && !series.manual && !series.episodes.length && !state.loadingEpisodesFor[id]) {
+    if (series && (series.type || "tv") !== "movie" && !series.manual && !series.episodes.length && !state.loadingEpisodesFor[id]) {
       loadEpisodesFor(series);
     }
   }
@@ -467,8 +517,11 @@
     state.searchLoading = true;
     state.searchError = null;
     withFocusPreserved(render);
-    api.searchSeries(query).then(function (results) {
+    var mode = state.searchMode || "tv";
+    var searchFn = mode === "movie" ? api.searchMovies : api.searchSeries;
+    searchFn(query).then(function (results) {
       if (state.searchQuery !== query) return; // respuesta obsoleta
+      results.forEach(function (r) { r.type = mode; });
       state.searchResults = results.slice(0, 12);
       state.searchLoading = false;
       withFocusPreserved(render);
@@ -483,7 +536,9 @@
 
   function doAddSeries(result) {
     var entry = storage.addSeries({
-      tvmazeId: result.tvmazeId,
+      type: result.type || "tv",
+      tvmazeId: result.tvmazeId || null,
+      imdbId: result.imdbId || null,
       name: result.name,
       poster: result.poster,
       summary: result.summary,
@@ -495,7 +550,7 @@
   }
 
   function doAddManualSeries(name) {
-    var entry = storage.addSeries({ name: name, manual: true });
+    var entry = storage.addSeries({ name: name, manual: true, type: state.searchMode || "tv" });
     state.searchOpen = false;
     state.manualFormOpen = false;
     doOpenSeries(entry.id);
@@ -636,6 +691,21 @@
         break;
       case "close-manual-form":
         state.manualFormOpen = false;
+        render();
+        break;
+      case "set-search-mode":
+        var newMode = el.getAttribute("data-mode");
+        if (newMode !== state.searchMode) {
+          state.searchMode = newMode;
+          state.searchResults = [];
+          state.searchError = null;
+          state.manualFormOpen = false;
+          if (state.searchQuery.trim()) doSearch(state.searchQuery);
+          else render();
+        }
+        break;
+      case "set-catalog-filter":
+        state.catalogFilter = el.getAttribute("data-filter");
         render();
         break;
       case "add-series":

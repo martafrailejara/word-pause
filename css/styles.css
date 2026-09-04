@@ -321,6 +321,22 @@ h1 {
   background: var(--danger);
 }
 
+.type-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(20, 22, 28, 0.6);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.type-badge svg { width: 60%; height: 60%; }
+
 /* ---------- hoja de búsqueda ---------- */
 
 .sheet-backdrop {
@@ -370,6 +386,8 @@ h1 {
   color: var(--text);
   margin-bottom: 12px;
 }
+
+.search-mode-row { display: flex; gap: 8px; margin-bottom: 14px; }
 
 .search-results { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
 
