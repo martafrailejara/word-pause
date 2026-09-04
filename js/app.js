@@ -535,7 +535,7 @@
 
     return (
       '<header class="topbar">' +
-        '<p class="eyebrow">' + storage.listWords().length + ' palabras guardadas</p>' +
+        '<p class="eyebrow">' + storage.listWords().length + (storage.listWords().length === 1 ? ' palabra guardada' : ' palabras guardadas') + '</p>' +
         "<h1>Mi vocabulario</h1>" +
       "</header>" +
       '<div class="vocab-filters">' +

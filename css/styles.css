@@ -613,7 +613,7 @@ h1 {
 /* ---------- mi vocabulario ---------- */
 
 .vocab-filters { margin-bottom: 14px; }
-.filter-row { display: flex; gap: 8px; }
+.filter-row { display: flex; gap: 8px; margin-bottom: 10px; }
 .filter-row select {
   flex: 1;
   min-width: 0;
