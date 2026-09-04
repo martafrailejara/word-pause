@@ -869,39 +869,7 @@
     }
   });
 
-  // ---------- tema claro/oscuro ----------
-
-  function initThemeToggle() {
-    var btn = document.getElementById("themeToggle");
-    if (!btn) return;
-    var stored = null;
-    try { stored = localStorage.getItem("wordPause.theme"); } catch (e) {}
-    if (stored === "light" || stored === "dark") {
-      document.documentElement.setAttribute("data-theme", stored);
-    }
-    updateThemeIcon();
-    btn.addEventListener("click", function () {
-      var current = document.documentElement.getAttribute("data-theme");
-      var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-      var effectiveDark = current ? current === "dark" : prefersDark;
-      var next = effectiveDark ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      try { localStorage.setItem("wordPause.theme", next); } catch (e) {}
-      updateThemeIcon();
-    });
-  }
-
-  function updateThemeIcon() {
-    var btn = document.getElementById("themeToggle");
-    if (!btn) return;
-    var current = document.documentElement.getAttribute("data-theme");
-    var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    var effectiveDark = current ? current === "dark" : prefersDark;
-    btn.textContent = effectiveDark ? "\u2600\uFE0F" : "\uD83C\uDF19";
-  }
-
   // ---------- arranque ----------
 
-  initThemeToggle();
   render();
 })();
