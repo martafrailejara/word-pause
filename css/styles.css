@@ -88,8 +88,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
   text-transform: uppercase;
   color: var(--accent-ink);
   background-color: var(--accent);
-  background-image: radial-gradient(rgba(0, 0, 0, 0.28) 1px, transparent 1.6px);
-  background-size: 6px 6px;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.15) 1px, transparent 1.6px);
+  background-size: 7px 7px;
   padding: 3px 9px;
   border: 1.5px solid var(--ink-line);
   border-radius: 3px;
@@ -129,27 +129,21 @@ h1 {
 
 .brand {
   position: fixed;
-  top: max(14px, env(safe-area-inset-top));
-  left: 16px;
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 9px;
   font-family: "Anton", "Archivo Black", Impact, sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   font-weight: 400;
-  font-size: 17px;
+  font-size: 20px;
   color: var(--text);
+  text-align: center;
   pointer-events: none;
 }
 
-.brand-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  display: block;
-}
+.brand-accent { color: var(--accent); }
 
 /* ---------- buttons ---------- */
 
@@ -468,8 +462,8 @@ h1 {
   letter-spacing: 0.04em;
   color: var(--accent-ink);
   background-color: var(--accent);
-  background-image: radial-gradient(rgba(0, 0, 0, 0.28) 1px, transparent 1.6px);
-  background-size: 6px 6px;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.15) 1px, transparent 1.6px);
+  background-size: 7px 7px;
   padding: 3px 9px;
   border: 1.5px solid var(--ink-line);
   border-radius: 3px;
