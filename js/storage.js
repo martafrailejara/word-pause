@@ -130,6 +130,19 @@ window.VP = window.VP || {};
     save(data);
   }
 
+  function updateWord(id, changes) {
+    var data = load();
+    for (var i = 0; i < data.words.length; i++) {
+      if (data.words[i].id === id) {
+        if (changes.translation != null) data.words[i].translation = changes.translation;
+        if (changes.pos != null) data.words[i].pos = changes.pos;
+        save(data);
+        return data.words[i];
+      }
+    }
+    return null;
+  }
+
   function listWords(filter) {
     var data = load();
     var words = data.words;
@@ -195,6 +208,7 @@ window.VP = window.VP || {};
     deleteSeries: deleteSeries,
     updateSeriesEpisodes: updateSeriesEpisodes,
     addWords: addWords,
+    updateWord: updateWord,
     listWords: listWords,
     deleteWord: deleteWord,
     clearAllWords: clearAllWords,

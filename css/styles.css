@@ -583,6 +583,41 @@ h1 {
   color: var(--text-faint);
 }
 
+.word-item.editing { display: block; }
+
+.word-actions { display: flex; align-items: center; gap: 2px; flex: none; }
+
+.edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 4px;
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+.edit-btn svg { width: 16px; height: 16px; }
+.edit-btn:hover { color: var(--accent); }
+
+.word-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 2px 10px;
+}
+.word-edit-form input[type="text"],
+.word-edit-form select {
+  background: var(--surface);
+  border: 2px solid var(--ink-line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13.5px;
+  width: 100%;
+}
+.word-edit-actions { display: flex; gap: 8px; }
+
 .del {
   background: none;
   border: none;

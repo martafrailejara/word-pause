@@ -29,7 +29,8 @@
     translateError: null,
     lastSaveCount: 0,
     vocabFilter: { seriesId: "", pos: "", query: "" },
-    confirmClearVocab: false
+    confirmClearVocab: false,
+    editingWordId: null
   };
 
   // ---------- utilidades ----------
@@ -46,7 +47,8 @@
     bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>',
     tv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="13" rx="2.5"/><path d="M8 21h8M12 18v3"/></svg>',
-    clapper: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 15h18M8 4v5M8 15v5M16 4v5M16 15v5"/></svg>'
+    clapper: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 15h18M8 4v5M8 15v5M16 4v5M16 15v5"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>'
   };
 
   function parseWords(raw) {
@@ -417,6 +419,40 @@
 
   // ---------- vista: mi vocabulario ----------
 
+  function renderVocabWordItem(w) {
+    if (state.editingWordId === w.id) {
+      var posOptionsEdit = api.POS_ORDER.map(function (p) {
+        return '<option value="' + escapeHtml(p) + '"' + (w.pos === p ? " selected" : "") + ">" + escapeHtml(p) + "</option>";
+      }).join("");
+      return (
+        '<li class="word-item editing">' +
+          '<form class="word-edit-form" data-action="submit-edit-word" data-id="' + escapeHtml(w.id) + '">' +
+            '<span class="w-en">' + escapeHtml(w.word) + "</span>" +
+            '<input type="text" class="edit-translation-input" value="' + escapeHtml(w.translation) + '" required autofocus>' +
+            '<select class="edit-pos-select">' + posOptionsEdit + "</select>" +
+            '<div class="word-edit-actions">' +
+              '<button class="btn primary small" type="submit">Guardar</button>' +
+              '<button class="btn ghost small" type="button" data-action="cancel-edit-word" data-id="' + escapeHtml(w.id) + '">Cancelar</button>' +
+            "</div>" +
+          "</form>" +
+        "</li>"
+      );
+    }
+    return (
+      '<li class="word-item">' +
+        '<div>' +
+          '<span class="w-en">' + escapeHtml(w.word) + "</span>" +
+          '<span class="w-es">' + escapeHtml(w.translation) + "</span>" +
+          '<span class="w-meta">' + escapeHtml(w.pos) + " · " + escapeHtml(w.seriesName) + " · " + (w.season != null && w.episode != null ? "T" + w.season + "E" + w.episode : "Película") + " · " + formatRelative(w.addedAt) + "</span>" +
+        "</div>" +
+        '<div class="word-actions">' +
+          '<button class="edit-btn" data-action="edit-word" data-id="' + escapeHtml(w.id) + '" type="button" aria-label="Editar traducción">' + ICONS.edit + "</button>" +
+          '<button class="del" data-action="delete-word" data-id="' + escapeHtml(w.id) + '" type="button" aria-label="Eliminar">×</button>' +
+        "</div>" +
+      "</li>"
+    );
+  }
+
   function renderVocabView() {
     var allSeries = storage.listSeries();
     var words = storage.listWords({
@@ -434,18 +470,7 @@
     }).join("");
 
     var list = words.length
-      ? '<ul class="word-list roomy">' + words.map(function (w) {
-          return (
-            '<li class="word-item">' +
-              '<div>' +
-                '<span class="w-en">' + escapeHtml(w.word) + "</span>" +
-                '<span class="w-es">' + escapeHtml(w.translation) + "</span>" +
-                '<span class="w-meta">' + escapeHtml(w.pos) + " · " + escapeHtml(w.seriesName) + " · " + (w.season != null && w.episode != null ? "T" + w.season + "E" + w.episode : "Película") + " · " + formatRelative(w.addedAt) + "</span>" +
-              "</div>" +
-              '<button class="del" data-action="delete-word" data-id="' + escapeHtml(w.id) + '" type="button" aria-label="Eliminar">×</button>' +
-            "</li>"
-          );
-        }).join("") + "</ul>"
+      ? '<ul class="word-list roomy">' + words.map(renderVocabWordItem).join("") + "</ul>"
       : '<p class="empty-note">No hay palabras guardadas con estos filtros.</p>';
 
     return (
@@ -772,6 +797,14 @@
         storage.deleteWord(el.getAttribute("data-id"));
         render();
         break;
+      case "edit-word":
+        state.editingWordId = el.getAttribute("data-id");
+        render();
+        break;
+      case "cancel-edit-word":
+        state.editingWordId = null;
+        render();
+        break;
       case "export-vocab":
         doExportVocab();
         break;
@@ -790,12 +823,27 @@
   });
 
   root.addEventListener("submit", function (e) {
-    var form = e.target.closest('[data-action="submit-manual-series"]');
-    if (!form) return;
-    e.preventDefault();
-    var input = document.getElementById("manualName");
-    var name = input && input.value.trim();
-    if (name) doAddManualSeries(name);
+    var manualForm = e.target.closest('[data-action="submit-manual-series"]');
+    if (manualForm) {
+      e.preventDefault();
+      var input = document.getElementById("manualName");
+      var name = input && input.value.trim();
+      if (name) doAddManualSeries(name);
+      return;
+    }
+    var editForm = e.target.closest('[data-action="submit-edit-word"]');
+    if (editForm) {
+      e.preventDefault();
+      var wid = editForm.getAttribute("data-id");
+      var tInput = editForm.querySelector(".edit-translation-input");
+      var pSelect = editForm.querySelector(".edit-pos-select");
+      var newTranslation = tInput && tInput.value.trim();
+      if (newTranslation) {
+        storage.updateWord(wid, { translation: newTranslation, pos: pSelect ? pSelect.value : null });
+      }
+      state.editingWordId = null;
+      render();
+    }
   });
 
   root.addEventListener("input", function (e) {
