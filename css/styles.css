@@ -196,6 +196,43 @@ h1 {
 .search-trigger-ic { width: 18px; height: 18px; flex: none; color: var(--text-faint); }
 .search-trigger-ic svg { width: 100%; height: 100%; }
 
+.continue-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: var(--surface);
+  border: 2px solid var(--ink-line);
+  border-top: 4px solid var(--accent);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  text-align: left;
+}
+.continue-info { flex: 1; min-width: 0; }
+.continue-label {
+  margin: 0 0 2px;
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+.continue-name {
+  margin: 0;
+  font-family: "Anton", "Archivo Black", Impact, sans-serif;
+  text-transform: uppercase;
+  font-size: 15px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.continue-arrow { width: 20px; height: 20px; flex: none; color: var(--text-faint); }
+.continue-arrow svg { width: 100%; height: 100%; }
+
 .card-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -525,9 +562,12 @@ h1 {
 }
 
 .word-item.editing { display: block; }
+.word-item.learned { opacity: 0.55; }
 
 .word-actions { display: flex; align-items: center; gap: 2px; flex: none; }
 
+.speak-btn,
+.learned-btn,
 .edit-btn {
   background: none;
   border: none;
@@ -538,8 +578,13 @@ h1 {
   display: flex;
   align-items: center;
 }
+.speak-btn svg,
+.learned-btn svg,
 .edit-btn svg { width: 16px; height: 16px; }
+.speak-btn:hover { color: var(--accent); }
 .edit-btn:hover { color: var(--accent); }
+.learned-btn:hover { color: var(--success-c); }
+.learned-btn.active { color: var(--success-c); }
 
 .word-edit-form {
   display: flex;
@@ -627,6 +672,62 @@ h1 {
 .nav-btn.active { color: var(--accent); background: var(--surface-2); }
 .nav-ic { width: 20px; height: 20px; display: inline-flex; }
 .nav-ic svg { width: 100%; height: 100%; }
+
+/* ---------- repaso (flashcards) ---------- */
+
+.review-card {
+  width: 100%;
+  background: var(--surface);
+  border: 2px solid var(--ink-line);
+  border-top: 4px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 32px 20px;
+  margin-bottom: 16px;
+  text-align: center;
+  cursor: pointer;
+}
+.review-card.revealed { cursor: default; }
+.review-word-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.review-word {
+  font-family: "Newsreader", Georgia, serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 28px;
+}
+.review-word-row .speak-btn { color: var(--text-dim); }
+.review-hint {
+  margin: 18px 0 0;
+  color: var(--text-faint);
+  font-size: 13px;
+}
+.review-translation {
+  margin: 18px 0 6px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.review-card .w-ex { display: block; margin: 6px 0; }
+.review-card .w-meta {
+  display: block;
+  margin-top: 10px;
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.review-actions { display: flex; gap: 10px; }
+.review-done { text-align: center; padding: 24px 0; }
+.review-done-title {
+  font-family: "Anton", "Archivo Black", Impact, sans-serif;
+  text-transform: uppercase;
+  font-size: 22px;
+  margin: 0 0 6px;
+}
 
 /* ---------- pantallas más anchas ---------- */
 

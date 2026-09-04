@@ -28,9 +28,12 @@
     translateProgress: null,
     translateError: null,
     lastSaveCount: 0,
-    vocabFilter: { seriesId: "", pos: "", query: "" },
+    vocabFilter: { seriesId: "", pos: "", query: "", learned: "" },
     confirmClearVocab: false,
-    editingWordId: null
+    editingWordId: null,
+    reviewQueue: [],
+    reviewIndex: 0,
+    reviewRevealed: false
   };
 
   // ---------- utilidades ----------
@@ -48,8 +51,24 @@
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>',
     tv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="13" rx="2.5"/><path d="M8 21h8M12 18v3"/></svg>',
     clapper: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 15h18M8 4v5M8 15v5M16 4v5M16 15v5"/></svg>',
-    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>'
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+    speaker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.3 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
+    cards: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="3" width="14" height="16" rx="2" transform="rotate(6 14 11)"/><rect x="3" y="5" width="14" height="16" rx="2"/></svg>',
+    chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>'
   };
+
+  // lee una palabra en inglés en voz alta con la Web Speech API del navegador (gratis, sin API externa)
+  function speak(text) {
+    if (!text || !("speechSynthesis" in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      var utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "en-US";
+      utter.rate = 0.95;
+      window.speechSynthesis.speak(utter);
+    } catch (e) {}
+  }
 
   function parseWords(raw) {
     var seen = {};
@@ -120,6 +139,7 @@
     var html = "";
     if (state.view === "series" && state.seriesId) html = renderSeriesView();
     else if (state.view === "vocab") html = renderVocabView();
+    else if (state.view === "review") html = renderReviewView();
     else html = renderCatalogView();
     root.innerHTML = html + renderBottomNav();
   }
@@ -133,6 +153,9 @@
         "</button>" +
         '<button class="nav-btn' + (state.view === "vocab" ? " active" : "") + '" data-action="nav" data-view="vocab" type="button">' +
           '<span class="nav-ic">' + ICONS.bookmark + '</span><span>Mi vocabulario</span>' +
+        "</button>" +
+        '<button class="nav-btn' + (state.view === "review" ? " active" : "") + '" data-action="nav" data-view="review" type="button">' +
+          '<span class="nav-ic">' + ICONS.cards + '</span><span>Repasar</span>' +
         "</button>" +
       "</nav>"
     );
@@ -161,9 +184,32 @@
         "<h1>Lo que sigues</h1>" +
       "</header>" +
       '<button class="search-trigger" data-action="open-search" type="button"><span class="search-trigger-ic">' + ICONS.search + '</span>Buscar una serie o película para añadir…</button>' +
+      renderContinueCard() +
       renderCatalogFilters() +
       '<div class="card-grid">' + cards + "</div>" +
       (state.searchOpen ? renderSearchSheet() : "")
+    );
+  }
+
+  function renderContinueCard() {
+    var id = storage.getLastOpenedSeries();
+    if (!id) return "";
+    var s = storage.getSeries(id);
+    if (!s) return "";
+    var type = s.type || "tv";
+    var typeIcon = type === "movie" ? ICONS.clapper : ICONS.tv;
+    var poster = s.poster
+      ? '<img src="' + escapeHtml(s.poster) + '" alt="" loading="lazy">'
+      : '<div class="poster-fallback small">' + typeIcon + '</div>';
+    return (
+      '<button class="continue-card" data-action="open-series" data-id="' + escapeHtml(s.id) + '" type="button">' +
+        '<div class="poster small">' + poster + "</div>" +
+        '<div class="continue-info">' +
+          '<p class="continue-label">Seguir viendo</p>' +
+          '<p class="continue-name">' + escapeHtml(s.name) + "</p>" +
+        "</div>" +
+        '<span class="continue-arrow">' + ICONS.chevron + "</span>" +
+      "</button>"
     );
   }
 
@@ -381,7 +427,10 @@
                     '<span class="w-es">' + escapeHtml(w.translation) + "</span>" +
                     (w.example_en ? '<span class="w-ex">“' + escapeHtml(w.example_en) + '”</span>' : "") +
                   "</div>" +
-                  '<button class="del" data-action="delete-word" data-id="' + escapeHtml(w.id) + '" type="button" aria-label="Eliminar">×</button>' +
+                  '<div class="word-actions">' +
+                    '<button class="speak-btn" data-action="speak-word" data-word="' + escapeHtml(w.word) + '" type="button" aria-label="Escuchar">' + ICONS.speaker + "</button>" +
+                    '<button class="del" data-action="delete-word" data-id="' + escapeHtml(w.id) + '" type="button" aria-label="Eliminar">×</button>' +
+                  "</div>" +
                 "</li>"
               );
             }).join("") +
@@ -439,13 +488,15 @@
       );
     }
     return (
-      '<li class="word-item">' +
+      '<li class="word-item' + (w.learned ? " learned" : "") + '">' +
         '<div>' +
           '<span class="w-en">' + escapeHtml(w.word) + "</span>" +
           '<span class="w-es">' + escapeHtml(w.translation) + "</span>" +
-          '<span class="w-meta">' + escapeHtml(w.pos) + " · " + escapeHtml(w.seriesName) + " · " + (w.season != null && w.episode != null ? "T" + w.season + "E" + w.episode : "Película") + " · " + formatRelative(w.addedAt) + "</span>" +
+          '<span class="w-meta">' + escapeHtml(w.pos) + " · " + escapeHtml(w.seriesName) + " · " + (w.season != null && w.episode != null ? "T" + w.season + "E" + w.episode : "Película") + " · " + formatRelative(w.addedAt) + (w.learned ? " · Aprendida" : "") + "</span>" +
         "</div>" +
         '<div class="word-actions">' +
+          '<button class="speak-btn" data-action="speak-word" data-word="' + escapeHtml(w.word) + '" type="button" aria-label="Escuchar">' + ICONS.speaker + "</button>" +
+          '<button class="learned-btn' + (w.learned ? " active" : "") + '" data-action="toggle-learned" data-id="' + escapeHtml(w.id) + '" type="button" aria-label="' + (w.learned ? "Marcar como pendiente" : "Marcar como aprendida") + '">' + ICONS.check + "</button>" +
           '<button class="edit-btn" data-action="edit-word" data-id="' + escapeHtml(w.id) + '" type="button" aria-label="Editar traducción">' + ICONS.edit + "</button>" +
           '<button class="del" data-action="delete-word" data-id="' + escapeHtml(w.id) + '" type="button" aria-label="Eliminar">×</button>' +
         "</div>" +
@@ -458,7 +509,8 @@
     var words = storage.listWords({
       seriesId: state.vocabFilter.seriesId || null,
       pos: state.vocabFilter.pos || null,
-      query: state.vocabFilter.query || null
+      query: state.vocabFilter.query || null,
+      learned: state.vocabFilter.learned || null
     });
 
     var seriesOptions = '<option value="">Todas las series</option>' + allSeries.map(function (s) {
@@ -468,6 +520,14 @@
     var posOptions = '<option value="">Todas las categorías</option>' + api.POS_ORDER.map(function (p) {
       return '<option value="' + escapeHtml(p) + '"' + (state.vocabFilter.pos === p ? " selected" : "") + ">" + escapeHtml(p) + "</option>";
     }).join("");
+
+    var learnedFilter = state.vocabFilter.learned || "";
+    var learnedChips =
+      '<div class="search-mode-row">' +
+        '<button class="chip' + (learnedFilter === "" ? " active" : "") + '" data-action="set-learned-filter" data-learned="" type="button">Todas</button>' +
+        '<button class="chip' + (learnedFilter === "pending" ? " active" : "") + '" data-action="set-learned-filter" data-learned="pending" type="button">Pendientes</button>' +
+        '<button class="chip' + (learnedFilter === "learned" ? " active" : "") + '" data-action="set-learned-filter" data-learned="learned" type="button">Aprendidas</button>' +
+      "</div>";
 
     var list = words.length
       ? '<ul class="word-list roomy">' + words.map(renderVocabWordItem).join("") + "</ul>"
@@ -484,6 +544,7 @@
           '<select id="vocabSeriesFilter">' + seriesOptions + "</select>" +
           '<select id="vocabPosFilter">' + posOptions + "</select>" +
         "</div>" +
+        learnedChips +
       "</div>" +
       list +
       '<div class="vocab-actions">' +
@@ -495,10 +556,70 @@
     );
   }
 
+  // ---------- vista: repaso (flashcards) ----------
+
+  function buildReviewQueue() {
+    var words = storage.listWords({ learned: "pending" });
+    var arr = words.slice();
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function renderReviewView() {
+    var queue = state.reviewQueue;
+    var total = queue.length;
+
+    if (!total) {
+      return (
+        '<header class="topbar"><p class="eyebrow">Repaso</p><h1>Modo repaso</h1></header>' +
+        '<p class="empty-note">No te quedan palabras pendientes por repasar. En cuanto guardes palabras nuevas (o marques alguna como no aprendida), aparecerán aquí.</p>'
+      );
+    }
+
+    if (state.reviewIndex >= total) {
+      return (
+        '<header class="topbar"><p class="eyebrow">Repaso</p><h1>Modo repaso</h1></header>' +
+        '<div class="review-done">' +
+          '<p class="review-done-title">¡Repaso completado!</p>' +
+          '<p class="empty-note">Has repasado ' + total + (total === 1 ? " palabra." : " palabras.") + "</p>" +
+          '<button class="btn primary full" data-action="restart-review" type="button">Repasar de nuevo</button>' +
+        "</div>"
+      );
+    }
+
+    var w = queue[state.reviewIndex];
+    var revealed = state.reviewRevealed;
+
+    return (
+      '<header class="topbar"><p class="eyebrow">Repaso · ' + (state.reviewIndex + 1) + "/" + total + '</p><h1>Modo repaso</h1></header>' +
+      '<section class="review-card' + (revealed ? " revealed" : "") + '"' + (!revealed ? ' data-action="reveal-word" role="button" tabindex="0"' : "") + ">" +
+        '<div class="review-word-row">' +
+          '<span class="review-word">' + escapeHtml(w.word) + "</span>" +
+          '<button class="speak-btn" data-action="speak-word" data-word="' + escapeHtml(w.word) + '" type="button" aria-label="Escuchar">' + ICONS.speaker + "</button>" +
+        "</div>" +
+        (revealed
+          ? ('<p class="review-translation">' + escapeHtml(w.translation) + "</p>" +
+             (w.example_en ? '<p class="w-ex">“' + escapeHtml(w.example_en) + '”</p>' : "") +
+             '<p class="w-meta">' + escapeHtml(w.pos) + " · " + escapeHtml(w.seriesName) + "</p>")
+          : '<p class="review-hint">Toca la tarjeta para ver la traducción</p>') +
+      "</section>" +
+      (revealed
+        ? ('<div class="review-actions">' +
+            '<button class="btn ghost full" data-action="review-mark" data-mark="pending" type="button">Repasar más</button>' +
+            '<button class="btn primary full" data-action="review-mark" data-mark="learned" type="button">Ya la sé</button>' +
+          "</div>")
+        : "")
+    );
+  }
+
   // ---------- acciones ----------
 
   function doOpenSeries(id) {
     var series = storage.getSeries(id);
+    storage.setLastOpenedSeries(id);
     state.view = "series";
     state.seriesId = id;
     state.season = null;
@@ -685,8 +806,14 @@
 
     switch (action) {
       case "nav":
-        state.view = el.getAttribute("data-view");
+        var targetView = el.getAttribute("data-view");
+        state.view = targetView;
         state.searchOpen = false;
+        if (targetView === "review") {
+          state.reviewQueue = buildReviewQueue();
+          state.reviewIndex = 0;
+          state.reviewRevealed = false;
+        }
         render();
         break;
       case "open-series":
@@ -803,6 +930,39 @@
         break;
       case "cancel-edit-word":
         state.editingWordId = null;
+        render();
+        break;
+      case "speak-word":
+        speak(el.getAttribute("data-word"));
+        break;
+      case "toggle-learned":
+        var learnedId = el.getAttribute("data-id");
+        var currentWordEntry = storage.listWords().filter(function (w) { return w.id === learnedId; })[0];
+        storage.updateWord(learnedId, { learned: !(currentWordEntry && currentWordEntry.learned) });
+        render();
+        break;
+      case "set-learned-filter":
+        state.vocabFilter.learned = el.getAttribute("data-learned") || "";
+        render();
+        break;
+      case "reveal-word":
+        state.reviewRevealed = true;
+        render();
+        break;
+      case "review-mark":
+        var mark = el.getAttribute("data-mark");
+        var reviewWord = state.reviewQueue[state.reviewIndex];
+        if (reviewWord && mark === "learned") {
+          storage.updateWord(reviewWord.id, { learned: true });
+        }
+        state.reviewIndex++;
+        state.reviewRevealed = false;
+        render();
+        break;
+      case "restart-review":
+        state.reviewQueue = buildReviewQueue();
+        state.reviewIndex = 0;
+        state.reviewRevealed = false;
         render();
         break;
       case "export-vocab":

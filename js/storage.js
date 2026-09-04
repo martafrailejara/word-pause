@@ -11,7 +11,7 @@ window.VP = window.VP || {};
   }
 
   function emptyState() {
-    return { series: [], words: [], lastSelection: null };
+    return { series: [], words: [], lastSelection: null, lastOpenedSeriesId: null };
   }
 
   function load() {
@@ -23,6 +23,7 @@ window.VP = window.VP || {};
       data.series = Array.isArray(data.series) ? data.series : [];
       data.words = Array.isArray(data.words) ? data.words : [];
       data.lastSelection = data.lastSelection || null;
+      data.lastOpenedSeriesId = data.lastOpenedSeriesId || null;
       return data;
     } catch (e) {
       return emptyState();
@@ -122,7 +123,8 @@ window.VP = window.VP || {};
         episode: it.episode,
         episodeName: it.episodeName || "",
         addedAt: existingIdx >= 0 ? data.words[existingIdx].addedAt : now,
-        timesSeen: existingIdx >= 0 ? (data.words[existingIdx].timesSeen || 1) + 1 : 1
+        timesSeen: existingIdx >= 0 ? (data.words[existingIdx].timesSeen || 1) + 1 : 1,
+        learned: existingIdx >= 0 ? !!data.words[existingIdx].learned : false
       };
       if (existingIdx >= 0) data.words.splice(existingIdx, 1);
       data.words.unshift(entry);
@@ -136,6 +138,7 @@ window.VP = window.VP || {};
       if (data.words[i].id === id) {
         if (changes.translation != null) data.words[i].translation = changes.translation;
         if (changes.pos != null) data.words[i].pos = changes.pos;
+        if (changes.learned != null) data.words[i].learned = !!changes.learned;
         save(data);
         return data.words[i];
       }
@@ -151,6 +154,8 @@ window.VP = window.VP || {};
       if (filter.season != null) words = words.filter(function (w) { return w.season === filter.season; });
       if (filter.episode != null) words = words.filter(function (w) { return w.episode === filter.episode; });
       if (filter.pos) words = words.filter(function (w) { return w.pos === filter.pos; });
+      if (filter.learned === "pending") words = words.filter(function (w) { return !w.learned; });
+      if (filter.learned === "learned") words = words.filter(function (w) { return !!w.learned; });
       if (filter.query) {
         var q = filter.query.toLowerCase();
         words = words.filter(function (w) {
@@ -185,6 +190,16 @@ window.VP = window.VP || {};
     return load().lastSelection;
   }
 
+  function setLastOpenedSeries(id) {
+    var data = load();
+    data.lastOpenedSeriesId = id;
+    save(data);
+  }
+
+  function getLastOpenedSeries() {
+    return load().lastOpenedSeriesId;
+  }
+
   // ---------- exportar / importar ----------
 
   function exportJSON() {
@@ -198,6 +213,7 @@ window.VP = window.VP || {};
     data.series = Array.isArray(parsed.series) ? parsed.series : [];
     data.words = Array.isArray(parsed.words) ? parsed.words : [];
     data.lastSelection = parsed.lastSelection || null;
+    data.lastOpenedSeriesId = parsed.lastOpenedSeriesId || null;
     save(data);
   }
 
@@ -214,6 +230,8 @@ window.VP = window.VP || {};
     clearAllWords: clearAllWords,
     setLastSelection: setLastSelection,
     getLastSelection: getLastSelection,
+    setLastOpenedSeries: setLastOpenedSeries,
+    getLastOpenedSeries: getLastOpenedSeries,
     exportJSON: exportJSON,
     importJSON: importJSON,
     uid: uid
